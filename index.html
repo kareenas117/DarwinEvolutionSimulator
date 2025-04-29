@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Darwin's Evolution Simulator</title>
+  <style>
+    body { 
+      margin: 0; 
+      font-family: Arial, sans-serif; 
+      background: linear-gradient(to bottom, #b3e5fc, #f9e4b7); 
+      display: flex; 
+      flex-direction: column; 
+      min-height: 100vh; 
+    }
+    header, footer { 
+      background-color: #388e3c; 
+      color: white; 
+      text-align: center; 
+      padding: 1rem; 
+    }
+    main { 
+      flex: 1; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      padding: 1rem; 
+    }
+    .card { 
+      background: white; 
+      border-radius: 8px; 
+      padding: 2rem; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+      max-width: 800px; 
+      width: 100%; 
+      margin: 1rem; 
+      text-align: center; 
+      position: relative; 
+    }
+    .button { 
+      background-color: #388e3c; 
+      color: white; 
+      border: none; 
+      padding: 0.75rem 1.5rem; 
+      margin-top: 1rem; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-size: 1rem; 
+    }
+    .button:hover { 
+      background-color: #2e7d32; 
+    }
+    .choice-button { 
+      background: #f9f9f9; 
+      border: 1px solid #ccc; 
+      border-radius: 6px; 
+      padding: 0.75rem; 
+      margin: 0.5rem 0; 
+      cursor: pointer; 
+      width: 100%; 
+      font-size: 1rem; 
+      text-align: left; 
+    }
+    .choice-button:hover { 
+      background: #c8facc; /* Light green hover */
+    }
+    .event-image { 
+      width: 100%; 
+      height: 200px; 
+      object-fit: cover; 
+      border-radius: 8px; 
+      margin: 1rem 0; 
+    }
+    .hidden { 
+      display: none; 
+    }
+    .summary-box { 
+      background: #eaf6fb; 
+      padding: 1rem; 
+      border-radius: 12px; 
+      margin: 1rem 0; 
+      display: flex; 
+      justify-content: space-around; 
+      text-align: center; 
+    }
+    .trait-card { 
+      background: #f5f5f5; 
+      border-radius: 8px; 
+      padding: 1rem; 
+      margin: 0.5rem 0; 
+      text-align: left; 
+    }
+    .success { color: green; }
+    .failure { color: red; }
+    #trait-emojis { 
+      position: absolute; 
+      bottom: 10px; 
+      left: 20px; 
+      font-size: 1.5rem; 
+    }
+    #day-count { 
+      position: absolute; 
+      bottom: 10px; 
+      right: 20px; 
+      color: #555; 
+      font-size: 0.9rem; 
+    }
+    #survival-points { 
+      position: absolute; 
+      top: 10px; 
+      right: 20px; 
+      color: #555; 
+      font-weight: bold; 
+    }
+
+    /* ✅ New animation */
+    .fade-in {
+      animation: fadeIn 0.8s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+<header><h1>Darwin's Evolution Simulator</h1></header>
+<main>
+<div id="start-screen" class="card">
+  <h2>Adapt to Survive on the Galápagos Islands</h2>
+  <p>You are a creature struggling to survive. Face difficult decisions and evolve!</p>
+  <button class="button" onclick="startGame()">Begin Your Evolution</button>
+</div>
+
+<div id="event-screen" class="card hidden">
+  <div id="survival-points"></div>
+  <h2 id="event-title"></h2>
+  <img id="event-image" class="event-image" src="" alt="Event Image">
+  <p id="event-description"></p>
+  <h3>How will you adapt?</h3>
+  <div id="choices"></div>
+  <div id="trait-emojis"></div>
+  <div id="day-count"></div>
+</div>
+
+<div id="outcome-screen" class="card hidden">
+  <h2>Consequence</h2>
+  <p id="outcome-text"></p>
+  <div class="trait-card" style="background:#eaf6fb; padding:1rem;">
+    <h3 style="color:#8B4513;">You gained: <span id="trait-title"></span></h3>
+    <p id="trait-description"></p>
+  </div>
+  <p id="points-gained"></p>
+  <button class="button" style="background-color:#8B4513;" onclick="nextEvent()">Continue</button>
+</div>
+
+<div id="end-screen" class="card hidden">
+  <h2 id="final-message"></h2>
+  <p id="summary-text"></p>
+  <div class="summary-box">
+    <div><strong>Survival Points</strong><div id="total-points"></div></div>
+    <div><strong>Evolutionary Traits</strong><div id="trait-icons"></div></div>
+  </div>
+  <h3>Evolutionary Traits Acquired</h3>
+  <div id="traits-list"></div>
+  <p id="darwin-quote" style="margin-top: 1rem; font-style: italic; color: #555;"></p>
+  <button class="button" onclick="restartGame()">Return to Reflection</button>
+</div>
+</main>
+
+<footer>Darwin's Evolution Simulator © 2025</footer>
+
+<script>
+let points = 0;
+let currentEvent = 0;
+let traits = [];
+let traitEmojis = [];
+
+const events = [
+  {
+    title: "Drought Crisis",
+    image: "Build-your-own-survival-shelter.jpg",
+    description: "Water holes have dried up. Survival is critical.",
+    choices: [
+      { text: "🌵 Harvest cactus moisture", points: 3, trait: "Cactus Drinker", emoji: "🌵", outcome: "You efficiently harvest hidden water!" },
+      { text: "🧭 Search for oasis", points: 1, trait: "Wanderer", emoji: "🧭", outcome: "You find some moisture but lose energy." },
+      { text: "💤 Sleep until rains return", points: 0, trait: "Dormant", emoji: "💤", outcome: "You starve while waiting." }
+    ]
+  },
+  {
+    title: "Predator Threat",
+    image: "b4-and-after.jpg",
+    description: "New predators lurk nearby. Stealth or speed?",
+    choices: [
+      { text: "🎨 Blend into foliage", points: 3, trait: "Master Camouflage", emoji: "🎨", outcome: "You become invisible to predators." },
+      { text: "🏃‍♂️ Sprint to rocky terrain", points: 1, trait: "Swift Runner", emoji: "🏃‍♂️", outcome: "You escape but injure yourself." },
+      { text: "🌳 Climb the highest trees", points: 0, trait: "Clumsy Climber", emoji: "🌳", outcome: "You fall and get hurt." }
+    ]
+  },
+  {
+    title: "Resource Competition",
+    image: "857530421_orig.jpg",
+    description: "Another species is competing for resources.",
+    choices: [
+      { text: "🌿 Change diet to other plants", points: 3, trait: "Diet Adapter", emoji: "🌿", outcome: "You thrive on untouched resources." },
+      { text: "🪨 Camouflage while gathering", points: 2, trait: "Hidden Forager", emoji: "🪨", outcome: "You gather enough secretly." },
+      { text: "⚔️ Fight for food", points: 0, trait: "Aggressor", emoji: "⚔️", outcome: "You sustain injuries in battle." }
+    ]
+  }
+];
+
+function startGame() {
+  document.getElementById('start-screen').classList.add('hidden');
+  showEvent();
+}
+
+function showEvent() {
+  const event = events[currentEvent];
+  document.getElementById('event-title').textContent = event.title;
+  document.getElementById('event-description').textContent = event.description;
+  document.getElementById('event-image').src = event.image;
+  document.getElementById('day-count').textContent = `Day ${currentEvent + 1} of ${events.length}`;
+  document.getElementById('survival-points').textContent = `Survival Points: ${points}`;
+
+  const choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = '';
+  event.choices.forEach((choice, index) => {
+    const button = document.createElement('button');
+    button.textContent = choice.text;
+    button.className = 'choice-button';
+    button.onclick = () => chooseOption(index);
+    choicesDiv.appendChild(button);
+  });
+
+  document.getElementById('trait-emojis').innerHTML = traitEmojis.join(' ');
+
+  const eventScreen = document.getElementById('event-screen');
+  eventScreen.classList.remove('hidden');
+  eventScreen.classList.add('fade-in');
+}
+
+function chooseOption(choiceIndex) {
+  const choice = events[currentEvent].choices[choiceIndex];
+  points += choice.points;
+  traits.push({ trait: choice.trait, emoji: choice.emoji });
+  traitEmojis.push(choice.emoji);
+
+  document.getElementById('event-screen').classList.add('hidden');
+
+  const outcomeScreen = document.getElementById('outcome-screen');
+  document.getElementById('outcome-text').textContent = choice.outcome;
+  document.getElementById('trait-title').textContent = `${choice.emoji} ${choice.trait}`;
+  document.getElementById('trait-description').textContent = getTraitDescription(choice.trait);
+  document.getElementById('points-gained').innerHTML = `Survival points: <strong>${points}</strong> (<span style='color: green;'>+${choice.points}</span>)`;
+
+  outcomeScreen.classList.remove('hidden');
+  outcomeScreen.classList.add('fade-in');
+}
+
+function nextEvent() {
+  currentEvent++;
+  if (currentEvent >= events.length) {
+    showEndScreen();
+  } else {
+    document.getElementById('outcome-screen').classList.add('hidden');
+    showEvent();
+  }
+}
+
+function showEndScreen() {
+  document.getElementById('outcome-screen').classList.add('hidden');
+
+  const endScreen = document.getElementById('end-screen');
+  endScreen.classList.remove('hidden');
+  endScreen.classList.add('fade-in');
+
+  document.getElementById('total-points').textContent = points;
+  document.getElementById('trait-icons').textContent = traits.map(t => t.emoji).join(' ');
+  document.getElementById('traits-list').innerHTML = traits.map(t => `<div class='trait-card'><strong>${t.emoji} ${t.trait}</strong><p>${getTraitDescription(t.trait)}</p></div>`).join('');
+
+  if (points >= 7) {
+    document.getElementById('final-message').innerHTML = "<span class='success'>Your Species Survived!</span>";
+    document.getElementById('summary-text').textContent = "Through natural selection and adaptation, your species thrived.";
+    document.getElementById('darwin-quote').textContent = '"It is not the strongest of the species that survives, nor the most intelligent, but the one most responsive to change." — Charles Darwin';
+  } else {
+    document.getElementById('final-message').innerHTML = "<span class='failure'>Your Species Went Extinct</span>";
+    document.getElementById('summary-text').textContent = "Unable to adapt quickly enough, your species could not survive.";
+    document.getElementById('darwin-quote').textContent = '"In the long history of humankind, those who learned to collaborate and improvise most effectively have prevailed." — Charles Darwin';
+  }
+}
+
+function restartGame() {
+  location.reload();
+}
+
+function getTraitDescription(trait) {
+  const descriptions = {
+    "Cactus Drinker": "Efficiently harvests cactus water to survive drought.",
+    "Wanderer": "Travels widely in search of scarce resources.",
+    "Dormant": "Attempts to conserve energy but risks starvation.",
+    "Master Camouflage": "Blends into environment to evade predators.",
+    "Swift Runner": "Escapes danger but risks injury.",
+    "Clumsy Climber": "Fails to climb effectively and suffers injury.",
+    "Diet Adapter": "Thrives by switching to untouched resources.",
+    "Hidden Forager": "Secretly gathers food while avoiding detection.",
+    "Aggressor": "Engages in dangerous fights over resources."
+  };
+  return descriptions[trait] || "An evolved trait for survival.";
+}
+</script>
+
+</body>
+</html>
